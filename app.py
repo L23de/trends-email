@@ -3,7 +3,6 @@ import bs4
 
 res = requests.get(
     'https://trends.google.com/trends/trendingsearches/daily/rss?geo=US')
-trends = dict()
 
 '''
 Converts from XML tags to dictionary-friendly keys
@@ -20,10 +19,12 @@ tagToKey = {
     'ht:news_item_url': 'newsItemURL',
 }
 
-
+'''
+Converts a BeautifulSoup object into a dictionary
+'''
 def soup2dict(list):
-    if len(list) == 0:  # Default case
-        return
+    if len(list) == 1:
+        return list[0]
 
     newDict = dict()
     for tag in list:
@@ -35,19 +36,10 @@ def soup2dict(list):
 if res.status_code == 200:
     soup = bs4.BeautifulSoup(res.text, 'html.parser')
     items = soup.find_all('item')
+    trends = []
 
     for item in items:
-        trends[item.title] = soup2dict(item.contents)
+        trends.append(soup2dict(item.contents))
 
-    trends = soup2dict(items)
-    print(trends)
-    # print(soup.prettify)
-    # Loops through each item in the list
-    # for item in soup.find_all('item'):
-    # trends[item.title] = {
-    # 	'traffic': item.approx_traffic,
-    # 	'description': item.description,
-    # 	'pictureSource': item.picture,
-    # }
 else:
     print(f"Error: Status code {res.status_code})")
