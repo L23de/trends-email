@@ -1,4 +1,5 @@
 import requests
+from mailer import Mailer
 import bs4
 
 res = requests.get(
@@ -19,10 +20,11 @@ tagToKey = {
     'ht:news_item_url': 'newsItemURL',
 }
 
-'''
-Converts a BeautifulSoup object into a dictionary
-'''
+
 def soup2dict(list):
+    '''
+    Converts a BeautifulSoup object into a dictionary
+    '''
     if len(list) == 1:
         return list[0]
 
