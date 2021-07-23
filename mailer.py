@@ -26,7 +26,7 @@ class Mailman():
         to = os.environ.get("recv")
         subject = f"Google Trends Top 10 - {mdyy}"
         # TODO: Fix the header logo
-        header = """
+        header = f"""
         <div id="Header">
             <div id="Header Logo">
                 <img src="attachments/TodayOnGTrends.png" alt ="Today On Google Trends Logo" style="display: block; margin-left: auto; margin-right: auto;">
@@ -51,17 +51,15 @@ class Mailman():
             trendCount = trendCount + 1
             body = f"""
             <div id="trend{trendCount}">
-                <img src={trend["pictureSrc"]} alt={trend["desc"]} width="200" height="200" style="float: left;">
+                <a href="{trend["newsItem"]["newsItemURL"]}">
+                    <img src={trend["pictureSrc"]} alt={trend["desc"]} width="200" height="200" style="float: left;">
+                </a>
                 <p style="clear: left; float: left;">
                     <h1>{trend["title"]} [{trend["traffic"]} Searches]</h1>
                     <div id="news-items" style="display: table;">
-                        <div id="news-item1" style="float: left; width: 50%;">
-                            <h3>{trend["newsItem"]["newsItemTitle"]}</h3>
-                            <p>{trend["newsItem"]["newsItemDesc"]}</p>
-                        </div>
-                        <div id="news-item2" style="float: left; width: 50%;">
-                            <h3>{trend["newsItem"]["newsItemTitle"]}</h3>
-                            <p>{trend["newsItem"]["newsItemDesc"]}</p>
+                        <div id="news-item" style="float: left; width: 50%;">
+                                <h3>{trend["newsItem"]["newsItemTitle"]}</h3>
+                                <p>{trend["newsItem"]["newsItemDesc"]}</p>
                         </div>
                     </div>
                 </p>
