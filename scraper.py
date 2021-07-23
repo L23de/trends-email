@@ -1,5 +1,5 @@
 import requests
-from mailer import Mailer
+from mailer import Mailman
 import bs4
 
 res = requests.get(
@@ -42,6 +42,9 @@ if res.status_code == 200:
 
     for item in items:
         trends.append(soup2dict(item.contents))
+
+    mailman = Mailman(trends)
+    mailman.sendMail()
 
 else:
     print(f"Error: Status code {res.status_code})")
