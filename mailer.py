@@ -1,10 +1,6 @@
 from datetime import date
-from dotenv import load_dotenv
 import yagmail
 import os
-
-# Loads env variables from local .env file
-load_dotenv()
 
 
 class Mailman():
