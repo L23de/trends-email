@@ -2,6 +2,6 @@
 .env
 .venv
 
-chromedriver.exe
 __pycache__*
 test.html
+oauth2.json
