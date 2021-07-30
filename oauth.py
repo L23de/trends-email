@@ -9,27 +9,16 @@ https://github.com/google/gmail-oauth2-tools/blob/master/python/oauth2.py
 
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from dotenv import load_dotenv
 import base64
-import imaplib
 import json
 import smtplib
 import urllib.parse
 import urllib.request
 import lxml.html
-import os
 
-# Loads env variables from local .env file
-load_dotenv()
 
 GOOGLE_ACCOUNTS_BASE_URL = 'https://accounts.google.com'
 REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
-
-# Gets OAUTH ID and PASS from .env file in root
-# IMPORTANT: Add a .env file and add both fields
-GOOGLE_CLIENT_ID = os.environ.get("OAUTH_ID")
-GOOGLE_CLIENT_SECRET = os.environ.get("OAUTH_PASS")
-GOOGLE_REFRESH_TOKEN = None
 
 
 def command_to_url(command):
@@ -38,10 +27,6 @@ def command_to_url(command):
 
 def url_escape(text):
     return urllib.parse.quote(text, safe='~-._')
-
-
-def url_unescape(text):
-    return urllib.parse.unquote(text)
 
 
 def url_format_params(params):
@@ -91,21 +76,6 @@ def generate_oauth2_string(username, access_token, as_base64=False):
         auth_string = base64.b64encode(
             auth_string.encode('ascii')).decode('ascii')
     return auth_string
-
-
-def test_imap(user, auth_string):
-    imap_conn = imaplib.IMAP4_SSL('imap.gmail.com')
-    imap_conn.debug = 4
-    imap_conn.authenticate('XOAUTH2', lambda x: auth_string)
-    imap_conn.select('INBOX')
-
-
-def test_smpt(user, base64_auth_string):
-    smtp_conn = smtplib.SMTP('smtp.gmail.com', 587)
-    smtp_conn.set_debuglevel(True)
-    smtp_conn.ehlo('test')
-    smtp_conn.starttls()
-    smtp_conn.docmd('AUTH', 'XOAUTH2 ' + base64_auth_string)
 
 
 def get_authorization(google_client_id, google_client_secret):
