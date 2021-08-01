@@ -3,13 +3,15 @@ from typing import Dict, List
 import requests
 import bs4
 import yagmail
+import json
 
 
 def main():
     # Google Trends RSS link (Updates daily)
     GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
 
-    recipients = [] # List of emails, defaults to oauth2.json email (Send to self)
+    # List of emails, defaults to oauth2.json email (Send to self)
+    recipients = []
 
     trends = scrape(GTRENDS_RSS)
     contents = createEmail(trends)
@@ -20,6 +22,7 @@ def main():
 
     yag = yagmail.SMTP(oauth2_file="oauth2.json")
     yag.send(subject=subject, contents=contents)
+    yag.close()
 
 
 def scrape(linkToScrape: str) -> Dict:
@@ -54,7 +57,11 @@ def scrape(linkToScrape: str) -> Dict:
         newDict = dict()
         for tag in list:
             if tag.name in tagToKey:  # Only includes values we need
-                newDict[tagToKey[tag.name]] = soup2dict(tag.contents)
+                tagName = tagToKey[tag.name]
+                # For news item (Avoids overwriting and preserves duplicate XML tags)
+                if tagName in newDict:
+                    tagName += '_'
+                newDict[tagName] = soup2dict(tag.contents)
         return newDict
 
     trends = []
@@ -67,6 +74,7 @@ def scrape(linkToScrape: str) -> Dict:
     else:
         print(f"Error: Status code {res.status_code})")
 
+    print(json.dumps(trends, indent=2))
     return trends
 
 
@@ -77,10 +85,11 @@ def createEmail(trends: List[Dict]) -> List[str]:
 
     # Message components
     # TODO: Fix the header logo
+    logoURL = "https://raw.githubusercontent.com/L23de/trends-email/main/attachments/TodayOnGTrends.png"
     header = f"""
     <div id="Header">
         <div id="Header Logo">
-            <img src="attachments/TodayOnGTrends.png" alt ="Today On Google Trends Logo" style="display: block; margin-left: auto; margin-right: auto;">
+            <img src="{logoURL}" alt ="Today On Google Trends Logo" style="display: block; margin-left: auto; margin-right: auto;">
         </div>
         <div id="About Me">
             <hr>
@@ -109,8 +118,12 @@ def createEmail(trends: List[Dict]) -> List[str]:
                 <h1>{trend["title"]} [{trend["traffic"]} Searches]</h1>
                 <div id="news-items" style="display: table;">
                     <div id="news-item" style="float: left; width: 50%;">
-                            <h3>{trend["newsItem"]["newsItemTitle"]}</h3>
-                            <p>{trend["newsItem"]["newsItemDesc"]}</p>
+                        <h3>{trend["newsItem"]["newsItemTitle"]}</h3>
+                        <p>{trend["newsItem"]["newsItemDesc"]}</p>
+                    </div>
+                    <div id="news-item_" style ="float: right; width:50%;">
+                        <h3>{trend["newsItem_"]["newsItemTitle"]}</h3>
+                        <p>{trend["newsItem_"]["newsItemDesc"]}</p>
                     </div>
                 </div>
             </p>
