@@ -7,10 +7,10 @@ Trends Email is a simple program that can run locally or on the cloud to send da
 
 ## Roadmap
 
--[x] Using [Google's OAuth2][2] to authenticate emails (Currently storing account credentials locally)
--[ ] Improving the email layout (HTML/CSS)
--[ ] Adding a filter for trends that may occur multiple times in a short time period
--[ ] Adding a config file for easy configuration (Email frequency, filter time period, recipients list, etc)
+- [x] Using [Google's OAuth2][2] to authenticate emails (Currently storing account credentials locally)
+- [ ] Improving the email layout (HTML/CSS)
+- [ ] Adding a filter for trends that may occur multiple times in a short time period
+- [ ] Adding a config file for easy configuration (Email frequency, filter time period, recipients list, etc)
 
 
 [1]: <https://trends.google.com/trends/trendingsearches/daily?geo=US> "Google Trends Link"
