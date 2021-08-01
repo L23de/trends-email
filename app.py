@@ -3,7 +3,7 @@ from typing import Dict, List
 import requests
 import bs4
 import yagmail
-import json
+# import json
 
 
 def main():
@@ -15,10 +15,7 @@ def main():
 
     trends = scrape(GTRENDS_RSS)
     contents = createEmail(trends)
-
-    today = date.today()
-    fDate = today.strftime("%m/%d/%y")
-    subject = f"Google Trends Top 10 - {fDate}"
+    subject = f"""Google Trends Top 10 - {date.today().strftime("%m/%d/%y")}"""
 
     yag = yagmail.SMTP(oauth2_file="oauth2.json")
     yag.send(subject=subject, contents=contents)
@@ -74,18 +71,18 @@ def scrape(linkToScrape: str) -> Dict:
     else:
         print(f"Error: Status code {res.status_code})")
 
-    print(json.dumps(trends, indent=2))
     return trends
 
 
 def createEmail(trends: List[Dict]) -> List[str]:
-    # Formats today's date
-    today = date.today()
-    fDate = today.strftime("%B %d, %Y")
-
     # Message components
     # TODO: Fix the header logo
     logoURL = "https://raw.githubusercontent.com/L23de/trends-email/main/attachments/TodayOnGTrends.png"
+    css = """
+    newsItem {
+
+    }
+    """
     header = f"""
     <div id="Header">
         <div id="Header Logo">
@@ -96,7 +93,7 @@ def createEmail(trends: List[Dict]) -> List[str]:
             <table width=100%>
                     <tr>
                     <td style="text-align: left">Created by: <a href = "https://github.com/L23de/trends-email">Lester Huang</a></td> 
-                    <td style="text-align: right;">{fDate}</td>
+                    <td style="text-align: right;">{date.today().strftime("%B %d, %Y")}</td>
                     </tr>
                 </table>
             <hr>
@@ -108,27 +105,29 @@ def createEmail(trends: List[Dict]) -> List[str]:
     # TODO: Fix how scraper stores the two news items
     trendCount = 0
     for trend in trends:
-        trendCount = trendCount + 1
+        trendCount += 1
         body = f"""
         <div id="trend{trendCount}">
-            <a href="{trend["newsItem"]["newsItemURL"]}">
-                <img src={trend["pictureSrc"]} alt={trend["desc"]} width="200" height="200" style="float: left;">
-            </a>
-            <p style="clear: left; float: left;">
-                <h1>{trend["title"]} [{trend["traffic"]} Searches]</h1>
-                <div id="news-items" style="display: table;">
-                    <div id="news-item" style="float: left; width: 50%;">
-                        <h3>{trend["newsItem"]["newsItemTitle"]}</h3>
-                        <p>{trend["newsItem"]["newsItemDesc"]}</p>
-                    </div>
-                    <div id="news-item_" style ="float: right; width:50%;">
-                        <h3>{trend["newsItem_"]["newsItemTitle"]}</h3>
-                        <p>{trend["newsItem_"]["newsItemDesc"]}</p>
-                    </div>
-                </div>
-            </p>
-        </div>
+            <table width=100%>
+                <tr>
+                    <th rowspan="3" valign="top">
+                        <a href="https://www.google.com/search?q={trend["title"]}">
+                        <img src={trend["pictureSrc"]} alt={trend["desc"]} width="250" height="250">
+                        </a>
+                    </th>
+                    <th style="text-align: left; font-size: 30px">{trend["title"]} [{trend["traffic"]} Searches]</th>
+                </tr>
+                <tr>
+                    <td style="font-size: 20px; font-weight: bold;">{trend["newsItem"]["newsItemTitle"]}</td>
+                    <td style="font-size: 20px; font-weight: bold;">{trend["newsItem_"]["newsItemTitle"]}</td>
+                </tr>
+                <tr>
+                    <td>{trend["newsItem"]["newsItemDesc"]}</td>
+                    <td>{trend["newsItem_"]["newsItemDesc"]}</td>
+                </tr>
+            </table>
         <br>
+        </div>
         """
         contents.append(body)
         if trendCount >= 10:  # Only sends top 10 trends
