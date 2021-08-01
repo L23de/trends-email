@@ -5,11 +5,12 @@ import bs4
 import yagmail
 # import json
 
+DAYS_TO_FILTER = 7
+TRENDS_TO_SHOW = 10 # Should be less than 20 (If duplicates exist in DAYS_TO_FILTER, email may show less trends than desired)
+DUP_TRENDS_PATH = "duplicateTrends.txt"
+GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
 
 def main():
-    # Google Trends RSS link (Updates daily)
-    GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
-
     # List of emails, defaults to oauth2.json email (Send to self)
     recipients = []
 
@@ -75,6 +76,9 @@ def scrape(linkToScrape: str) -> Dict:
 
 
 def createEmail(trends: List[Dict]) -> List[str]:
+    """
+    Creates message body for the email
+    """
     # Message components
     # TODO: Fix the header logo
     logoURL = "https://raw.githubusercontent.com/L23de/trends-email/main/attachments/TodayOnGTrends.png"
@@ -104,7 +108,7 @@ def createEmail(trends: List[Dict]) -> List[str]:
 
     # TODO: Fix how scraper stores the two news items
     trendCount = 0
-    for trend in trends:
+    for trend in (trend for trend in trends if trendCount < TRENDS_TO_SHOW):
         trendCount += 1
         body = f"""
         <div id="trend{trendCount}">
@@ -130,10 +134,46 @@ def createEmail(trends: List[Dict]) -> List[str]:
         </div>
         """
         contents.append(body)
-        if trendCount >= 10:  # Only sends top 10 trends
-            break
 
     return contents
+
+
+def checkTrend(trends: List[Dict], range: int = 7) -> List[Dict]:
+    """
+    Checks that trends that are being sent have not been set in the past 'range' days
+    Range defaults to previous 7 days
+    """
+
+    # TODO: When calling checkTrend(), check that range > 0
+
+    dupList = [] # Allows duplicates opposed to a set
+    with open(DUP_TRENDS_PATH, 'r+') as dupFile:
+        """
+        Deletes duplicates from the past 'range' days from the current trends dictionary
+        """
+        fileContents = dupFile.read()
+        dupList = fileContents.splitlines() # Parses newline separated data
+        dupSize = len(dupList)
+
+        for dup in dupList: # Deletes existing duplicates from trends dictionary
+            if dup in trends:
+                del trends[dup]
+
+
+        """
+        Deletes trends if past 'range' days (Takes note that it doesn't write trends yet)
+        """
+        if dupSize >= TRENDS_TO_SHOW * DAYS_TO_FILTER:
+            pass
+        
+
+        """
+        Writes today's trends to the dictionary
+        """
+        postNum = 0
+        for trend in  (trend for trend in trend.keys() if postNum < TRENDS_TO_SHOW):
+            postNum += 1
+            dupFile.write(f"{trend}\n")
 
 
 if __name__ == '__main__':
