@@ -1,24 +1,28 @@
 from datetime import date
 from typing import Dict, List
-from dotenv import load_dotenv
 import requests
 import bs4
 import yagmail
-import os
-
-# Loads env variables from local .env file
-load_dotenv()
-
-# Gets OAUTH ID and PASS from .env file in root
-# IMPORTANT: Add a .env file and add both fields
-GOOGLE_CLIENT_ID = os.environ.get("OAUTH_ID")
-GOOGLE_CLIENT_SECRET = os.environ.get("OAUTH_PASS")
-GOOGLE_REFRESH_TOKEN = None
-
-GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
 
 
-def scrape(linkToScrape: str):
+def main():
+    # Google Trends RSS link (Updates daily)
+    GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
+
+    recipients = [] # List of emails, defaults to oauth2.json email (Send to self)
+
+    trends = scrape(GTRENDS_RSS)
+    contents = createEmail(trends)
+
+    today = date.today()
+    fDate = today.strftime("%m/%d/%y")
+    subject = f"Google Trends Top 10 - {fDate}"
+
+    yag = yagmail.SMTP(oauth2_file="oauth2.json")
+    yag.send(subject=subject, contents=contents)
+
+
+def scrape(linkToScrape: str) -> Dict:
     """
     Provides a method to scrape a XML file using the requests library and bs4
     """
@@ -66,7 +70,7 @@ def scrape(linkToScrape: str):
     return trends
 
 
-def createEmail(trends: List[Dict]):
+def createEmail(trends: List[Dict]) -> List[str]:
     # Formats today's date
     today = date.today()
     fDate = today.strftime("%B %d, %Y")
@@ -121,14 +125,4 @@ def createEmail(trends: List[Dict]):
 
 
 if __name__ == '__main__':
-    fromAddr = os.environ.get("from")
-    toAddr = os.environ.get("to")
-    trends = scrape(GTRENDS_RSS)
-    contents = createEmail(trends)
-
-    today = date.today()
-    fDate = today.strftime("%m/%d/%y")
-    subject = f"Google Trends Top 10 - {fDate}"
-
-    yag = yagmail.SMTP(to=toAddr, oauth2_file="oauth2.json")
-    yag.send(to=toAddr, subject=subject, contents=contents)
+    main()
