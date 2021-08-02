@@ -1,26 +1,30 @@
 from datetime import date
 from typing import Dict, List
+from os import path
 import requests
 import bs4
 import yagmail
-# import json
+import json
 
 DAYS_TO_FILTER = 7
-TRENDS_TO_SHOW = 10 # Should be less than 20 (If duplicates exist in DAYS_TO_FILTER, email may show less trends than desired)
+# Should be less than 20 (If duplicates exist in DAYS_TO_FILTER, email may show less trends than desired)
+TRENDS_TO_SHOW = 10
 DUP_TRENDS_PATH = "duplicateTrends.txt"
 GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
+
 
 def main():
     # List of emails, defaults to oauth2.json email (Send to self)
     recipients = []
 
-    trends = scrape(GTRENDS_RSS)
+    trends = checkTrend()
+    print(json.dumps(trends, indent=2)) # Used to check the trends dictionary
     contents = createEmail(trends)
     subject = f"""Google Trends Top 10 - {date.today().strftime("%m/%d/%y")}"""
 
-    yag = yagmail.SMTP(oauth2_file="oauth2.json")
-    yag.send(subject=subject, contents=contents)
-    yag.close()
+    # yag = yagmail.SMTP(oauth2_file="oauth2.json")
+    # yag.send(subject=subject, contents=contents)
+    # yag.close()
 
 
 def scrape(linkToScrape: str) -> Dict:
@@ -60,6 +64,7 @@ def scrape(linkToScrape: str) -> Dict:
                 if tagName in newDict:
                     tagName += '_'
                 newDict[tagName] = soup2dict(tag.contents)
+
         return newDict
 
     trends = []
@@ -96,7 +101,7 @@ def createEmail(trends: List[Dict]) -> List[str]:
             <hr>
             <table width=100%>
                     <tr>
-                    <td style="text-align: left">Created by: <a href = "https://github.com/L23de/trends-email">Lester Huang</a></td> 
+                    <td style="text-align: left">Created by: <a href = "https://github.com/L23de/trends-email">Lester Huang</a></td>
                     <td style="text-align: right;">{date.today().strftime("%B %d, %Y")}</td>
                     </tr>
                 </table>
@@ -106,74 +111,99 @@ def createEmail(trends: List[Dict]) -> List[str]:
     """
     contents = [header]
 
-    # TODO: Fix how scraper stores the two news items
+    # TODO: Perhaps optimize how to treat trends w/ only 1 news item
     trendCount = 0
-    for trend in (trend for trend in trends if trendCount < TRENDS_TO_SHOW):
+    for trend in trends:
         trendCount += 1
         body = f"""
-        <div id="trend{trendCount}">
-            <table width=100%>
-                <tr>
-                    <th rowspan="3" valign="top">
-                        <a href="https://www.google.com/search?q={trend["title"]}">
-                        <img src={trend["pictureSrc"]} alt={trend["desc"]} width="250" height="250">
-                        </a>
-                    </th>
-                    <th style="text-align: left; font-size: 30px">{trend["title"]} [{trend["traffic"]} Searches]</th>
-                </tr>
-                <tr>
-                    <td style="font-size: 20px; font-weight: bold;">{trend["newsItem"]["newsItemTitle"]}</td>
-                    <td style="font-size: 20px; font-weight: bold;">{trend["newsItem_"]["newsItemTitle"]}</td>
-                </tr>
-                <tr>
-                    <td>{trend["newsItem"]["newsItemDesc"]}</td>
-                    <td>{trend["newsItem_"]["newsItemDesc"]}</td>
-                </tr>
-            </table>
-        <br>
-        </div>
+            <div id="trend{trendCount}">
+                <table width=100%>
+                    <tr>
+                        <th rowspan="3" valign="top">
+                            <a href="https://www.google.com/search?q={trend["title"]}">
+                            <img src={trend["pictureSrc"]} alt={trend["desc"]} width="250" height="250">
+                            </a>
+                        </th>
+                        <th style="text-align: left; font-size: 30px">{trend["title"]} [{trend["traffic"]} Searches]</th>
+                    </tr>
         """
+        if "newsItem_" in trend:
+            body += f"""
+                    <tr>
+                        <td style = "font-size: 20px; font-weight: bold;">{trend["newsItem"]["newsItemTitle"]}</td>
+                        <td style = "font-size: 20px; font-weight: bold;">{trend["newsItem_"]["newsItemTitle"]}</td>
+                    </tr>
+                    <tr>
+                        <td>{trend["newsItem"]["newsItemDesc"]}</td>
+                        <td>{trend["newsItem_"]["newsItemDesc"]}</td>
+                    </tr>
+                </table>
+            <br>
+            </div>
+            """
+        else:
+            body += f"""
+                    <tr>
+                        <td style = "font-size: 20px; font-weight: bold;">{trend["newsItem"]["newsItemTitle"]}</td>
+                    </tr>
+                    <tr>
+                        <td>{trend["newsItem"]["newsItemDesc"]}</td>
+                    </tr>
+                </table>
+            <br>
+            </div>
+            """
         contents.append(body)
 
     return contents
 
 
-def checkTrend(trends: List[Dict], range: int = 7) -> List[Dict]:
+def checkTrend(trends: List[Dict] = None) -> List[Dict]:
     """
     Checks that trends that are being sent have not been set in the past 'range' days
     Range defaults to previous 7 days
     """
 
-    # TODO: When calling checkTrend(), check that range > 0
+    # Done normally if trends is not passed in, will just call the scrape() method
+    trends = scrape(GTRENDS_RSS) if trends == None else trends
 
-    dupList = [] # Allows duplicates opposed to a set
-    with open(DUP_TRENDS_PATH, 'r+') as dupFile:
-        """
-        Deletes duplicates from the past 'range' days from the current trends dictionary
-        """
-        fileContents = dupFile.read()
-        dupList = fileContents.splitlines() # Parses newline separated data
-        dupSize = len(dupList)
+    if path.exists(DUP_TRENDS_PATH):
+        with open(DUP_TRENDS_PATH, 'r') as readDup:
+            """
+            Deletes duplicates from the past 'range' days from the current trends dictionary
+            """
+            fileContents = readDup.read()
+            dupList = fileContents.splitlines()  # Parses newline separated data
+            dupSize = len(dupList)
 
-        for dup in dupList: # Deletes existing duplicates from trends dictionary
-            if dup in trends:
-                del trends[dup]
+            for dup in dupList:  # Deletes existing duplicates from trends dictionary
+                if dup in trends:
+                    del trends[dup]
+            # Removes any excess elements in the list
+            trends = trends[:10] if len(trends) > 10 else trends
 
+            """
+            Deletes trends if past 'range' days and adds today's trends to the list
+            """
+            if dupSize >= TRENDS_TO_SHOW * DAYS_TO_FILTER:
+                dupList = dupList[-TRENDS_TO_SHOW * (DAYS_TO_FILTER - 1):]
+            for trend in trends:
+                dupList.append(trend['title'])
+    else:
+        print("File does not exist yet, creating new file to store trends info")
 
+    with open(DUP_TRENDS_PATH, 'w') as writeDup:
         """
-        Deletes trends if past 'range' days (Takes note that it doesn't write trends yet)
+        Writes today's trends to the text file (acts as a database)
         """
-        if dupSize >= TRENDS_TO_SHOW * DAYS_TO_FILTER:
-            pass
-        
+        for trend in dupList:
+            writeDup.write(f"{trend}\n")
 
-        """
-        Writes today's trends to the dictionary
-        """
-        postNum = 0
-        for trend in  (trend for trend in trend.keys() if postNum < TRENDS_TO_SHOW):
-            postNum += 1
-            dupFile.write(f"{trend}\n")
+    if len(trends) < TRENDS_TO_SHOW:
+        print(
+            f"NOTE: Newsletter contains less than {TRENDS_TO_SHOW} items.\nDecreasing the TRENDS_TO_SHOW and DAYS_TO_FILTER variables may help")
+
+    return trends
 
 
 if __name__ == '__main__':
