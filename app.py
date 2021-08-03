@@ -4,25 +4,27 @@ from os import path
 import requests
 import bs4
 import yagmail
-import json
 
+# Modify if needed:
+TRENDS_TO_SHOW = 10 # Should be less than 20 (If duplicates exist in DAYS_TO_FILTER, email may show less trends than desired)
 DAYS_TO_FILTER = 7
-# Should be less than 20 (If duplicates exist in DAYS_TO_FILTER, email may show less trends than desired)
-TRENDS_TO_SHOW = 10
+RECIPIENTS = []
+
+# No touchie
 DUP_TRENDS_PATH = "duplicateTrends.txt"
 GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
 
 
 def main():
-    # List of emails, defaults to oauth2.json email (Send to self)
-    recipients = []
-
     trends = getTrends()
     contents = createEmail(trends)
     subject = f"""Google Trends Top 10 - {date.today().strftime("%m/%d/%y")}"""
 
     yag = yagmail.SMTP(oauth2_file="oauth2.json")
-    yag.send(subject=subject, contents=contents)
+    if RECIPIENTS:
+        yag.send(to=RECIPIENTS, subject=subject, contents=contents)
+    else: # Send to self if no RECIPIENTS provided
+        yag.send(subject=subject, contents=contents)
     yag.close()
 
 
