@@ -12,14 +12,16 @@ TRENDS_TO_SHOW = 10
 DUP_TRENDS_PATH = "duplicateTrends.txt"
 GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
 
+TRENDS = []
+
 
 def main():
     # List of emails, defaults to oauth2.json email (Send to self)
     recipients = []
 
-    trends = checkTrend()
-    print(json.dumps(trends, indent=2)) # Used to check the trends dictionary
-    contents = createEmail(trends)
+    getTrends()
+    # print(json.dumps(trends, indent=2))  # Used to check the trends dictionary
+    contents = createEmail()
     subject = f"""Google Trends Top 10 - {date.today().strftime("%m/%d/%y")}"""
 
     # yag = yagmail.SMTP(oauth2_file="oauth2.json")
@@ -49,7 +51,7 @@ def scrape(linkToScrape: str) -> Dict:
         'ht:news_item_url': 'newsItemURL',
     }
 
-    def soup2dict(list):
+    def soup2dict(list) -> dict:
         '''
         Converts a XML-formatted BeautifulSoup object into a dictionary
         '''
@@ -80,7 +82,7 @@ def scrape(linkToScrape: str) -> Dict:
     return trends
 
 
-def createEmail(trends: List[Dict]) -> List[str]:
+def createEmail() -> List[str]:
     """
     Creates message body for the email
     """
@@ -113,7 +115,7 @@ def createEmail(trends: List[Dict]) -> List[str]:
 
     # TODO: Perhaps optimize how to treat trends w/ only 1 news item
     trendCount = 0
-    for trend in trends:
+    for trend in TRENDS:
         trendCount += 1
         body = f"""
             <div id="trend{trendCount}">
@@ -158,52 +160,61 @@ def createEmail(trends: List[Dict]) -> List[str]:
     return contents
 
 
-def checkTrend(trends: List[Dict] = None) -> List[Dict]:
+def getTrends(): # TODO: Fix duplicate checks
     """
     Checks that trends that are being sent have not been set in the past 'range' days
     Range defaults to previous 7 days
     """
 
-    # Done normally if trends is not passed in, will just call the scrape() method
-    trends = scrape(GTRENDS_RSS) if trends == None else trends
+    allTrends = scrape(GTRENDS_RSS) # Gets all 20 daily trends
+    dupList = []
+    dupSize = 0
 
+    """
+    Deletes duplicates from the past 'range' days from the current trends dictionary
+    """
     if path.exists(DUP_TRENDS_PATH):
         with open(DUP_TRENDS_PATH, 'r') as readDup:
-            """
-            Deletes duplicates from the past 'range' days from the current trends dictionary
-            """
             fileContents = readDup.read()
             dupList = fileContents.splitlines()  # Parses newline separated data
-            dupSize = len(dupList)
+            print(len(allTrends))
+            print(dupList)
 
-            for dup in dupList:  # Deletes existing duplicates from trends dictionary
-                if dup in trends:
-                    del trends[dup]
-            # Removes any excess elements in the list
-            trends = trends[:10] if len(trends) > 10 else trends
+            # O(n^2) - Not great, should be optimized
+            index = 0
+            for trend in allTrends:  # Deletes existing duplicates from trends dictionary
+                for dup in dupList:
+                    if trend['title'] == dup:
+                        popped = allTrends.pop(index)
+                        print(popped['title'] + index.__str__())
+                        index -= 1
+                        break
+                index += 1
 
-            """
-            Deletes trends if past 'range' days and adds today's trends to the list
-            """
-            if dupSize >= TRENDS_TO_SHOW * DAYS_TO_FILTER:
-                dupList = dupList[-TRENDS_TO_SHOW * (DAYS_TO_FILTER - 1):]
-            for trend in trends:
-                dupList.append(trend['title'])
     else:
         print("File does not exist yet, creating new file to store trends info")
 
+    """
+    Deletes trends if past 'range' days and adds today's trends to the list
+    """
+    # Removes any excess elements in the list and set to global var
+    TRENDS = allTrends[:10] if len(allTrends) > 10 else allTrends 
+
+    if len(dupList) >= TRENDS_TO_SHOW * DAYS_TO_FILTER:
+        dupList = dupList[-TRENDS_TO_SHOW * (DAYS_TO_FILTER - 1):]
+    for trend in TRENDS:
+        dupList.append(trend['title'])
+
+    """
+    Writes today's trends to the text file (acts as a database)
+    """
     with open(DUP_TRENDS_PATH, 'w') as writeDup:
-        """
-        Writes today's trends to the text file (acts as a database)
-        """
         for trend in dupList:
             writeDup.write(f"{trend}\n")
 
-    if len(trends) < TRENDS_TO_SHOW:
+    if len(TRENDS) < TRENDS_TO_SHOW:
         print(
             f"NOTE: Newsletter contains less than {TRENDS_TO_SHOW} items.\nDecreasing the TRENDS_TO_SHOW and DAYS_TO_FILTER variables may help")
-
-    return trends
 
 
 if __name__ == '__main__':
