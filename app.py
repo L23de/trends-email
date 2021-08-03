@@ -12,21 +12,18 @@ TRENDS_TO_SHOW = 10
 DUP_TRENDS_PATH = "duplicateTrends.txt"
 GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=US"
 
-TRENDS = []
-
 
 def main():
     # List of emails, defaults to oauth2.json email (Send to self)
     recipients = []
 
-    getTrends()
-    # print(json.dumps(trends, indent=2))  # Used to check the trends dictionary
-    contents = createEmail()
+    trends = getTrends()
+    contents = createEmail(trends)
     subject = f"""Google Trends Top 10 - {date.today().strftime("%m/%d/%y")}"""
 
-    # yag = yagmail.SMTP(oauth2_file="oauth2.json")
-    # yag.send(subject=subject, contents=contents)
-    # yag.close()
+    yag = yagmail.SMTP(oauth2_file="oauth2.json")
+    yag.send(subject=subject, contents=contents)
+    yag.close()
 
 
 def scrape(linkToScrape: str) -> Dict:
@@ -82,12 +79,11 @@ def scrape(linkToScrape: str) -> Dict:
     return trends
 
 
-def createEmail() -> List[str]:
+def createEmail(trends: List[dict]) -> List[str]:
     """
     Creates message body for the email
     """
     # Message components
-    # TODO: Fix the header logo
     logoURL = "https://raw.githubusercontent.com/L23de/trends-email/main/attachments/TodayOnGTrends.png"
     css = """
     newsItem {
@@ -115,7 +111,7 @@ def createEmail() -> List[str]:
 
     # TODO: Perhaps optimize how to treat trends w/ only 1 news item
     trendCount = 0
-    for trend in TRENDS:
+    for trend in trends:
         trendCount += 1
         body = f"""
             <div id="trend{trendCount}">
@@ -160,15 +156,14 @@ def createEmail() -> List[str]:
     return contents
 
 
-def getTrends(): # TODO: Fix duplicate checks
+def getTrends() -> List[dict]:
     """
     Checks that trends that are being sent have not been set in the past 'range' days
     Range defaults to previous 7 days
     """
 
-    allTrends = scrape(GTRENDS_RSS) # Gets all 20 daily trends
+    allTrends = scrape(GTRENDS_RSS)  # Gets all 20 daily trends
     dupList = []
-    dupSize = 0
 
     """
     Deletes duplicates from the past 'range' days from the current trends dictionary
@@ -177,19 +172,13 @@ def getTrends(): # TODO: Fix duplicate checks
         with open(DUP_TRENDS_PATH, 'r') as readDup:
             fileContents = readDup.read()
             dupList = fileContents.splitlines()  # Parses newline separated data
-            print(len(allTrends))
-            print(dupList)
 
             # O(n^2) - Not great, should be optimized
-            index = 0
+            # index = 0
+            tempTrends = allTrends.copy()
             for trend in allTrends:  # Deletes existing duplicates from trends dictionary
-                for dup in dupList:
-                    if trend['title'] == dup:
-                        popped = allTrends.pop(index)
-                        print(popped['title'] + index.__str__())
-                        index -= 1
-                        break
-                index += 1
+                if trend['title'] in dupList:
+                    tempTrends.remove(trend)
 
     else:
         print("File does not exist yet, creating new file to store trends info")
@@ -198,11 +187,11 @@ def getTrends(): # TODO: Fix duplicate checks
     Deletes trends if past 'range' days and adds today's trends to the list
     """
     # Removes any excess elements in the list and set to global var
-    TRENDS = allTrends[:10] if len(allTrends) > 10 else allTrends 
+    trends = tempTrends[:10] if len(tempTrends) > 10 else tempTrends
 
     if len(dupList) >= TRENDS_TO_SHOW * DAYS_TO_FILTER:
         dupList = dupList[-TRENDS_TO_SHOW * (DAYS_TO_FILTER - 1):]
-    for trend in TRENDS:
+    for trend in trends:
         dupList.append(trend['title'])
 
     """
@@ -212,9 +201,11 @@ def getTrends(): # TODO: Fix duplicate checks
         for trend in dupList:
             writeDup.write(f"{trend}\n")
 
-    if len(TRENDS) < TRENDS_TO_SHOW:
+    if len(trends) < TRENDS_TO_SHOW:
         print(
             f"NOTE: Newsletter contains less than {TRENDS_TO_SHOW} items.\nDecreasing the TRENDS_TO_SHOW and DAYS_TO_FILTER variables may help")
+
+    return trends
 
 
 if __name__ == '__main__':
