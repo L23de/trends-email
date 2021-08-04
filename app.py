@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Dict, List
 from os import path
+from cron import keepAlive
 import requests
 import bs4
 import yagmail
@@ -16,6 +17,7 @@ GTRENDS_RSS = "https://trends.google.com/trends/trendingsearches/daily/rss?geo=U
 
 
 def main():
+    keepAlive()
     trends = getTrends()
     contents = createEmail(trends)
     subject = f"""Google Trends Top 10 - {date.today().strftime("%m/%d/%y")}"""
