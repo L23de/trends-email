@@ -62,7 +62,7 @@ Check your inbox, and a fresh new email should be there, and now you know what's
 - [X] Adding a filter for trends that may occur multiple times in a short time period
 - [ ] Improving the email layout (HTML/CSS)
 - [ ] Adding a config file for easy configuration (Email frequency, filter time period, recipients list, etc)
-- [ ] Launch it in a container or on the cloud to automatically send newsletters
+- [x] Launch it in a container or on the cloud to automatically send newsletters (Catch: No free options, can self host)
 
 
 [1]: <https://trends.google.com/trends/trendingsearches/daily?geo=US> "Google Trends Link"
