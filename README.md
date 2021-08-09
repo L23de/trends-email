@@ -1,4 +1,5 @@
 # trends-email
+
 Trends Email is a simple program that can run locally or on the cloud to send daily newsletters about the [latest search trends][1] powered by Google Trends
 
 <p align="center">
@@ -16,9 +17,13 @@ Keep your OAuth client ID and secret safe
 ### Installing
 
 ```bash
-> git clone git@github.com:L23de/trends-email.git
-> pip install -r requirements.txt
+$ git clone git@github.com:L23de/trends-email.git
+$ cd trends-email
+$ pip install pipenv
+$ pipenv install
 ```
+
+This clones the repo to your local machine, as well as sets up a virtual environment and installs the appropriate dependencies required
 
 Inside `app.py`, modify the global variables to your desire:
 
@@ -31,7 +36,7 @@ RECIPIENTS = [] # Recipient List, list of email strings
 Run the program:
 
 ```bash
-> python app.py
+$ python app.py
 ```
 
 > You may have to use `pip3`, `python3` if `pip`, `python` does not work for you
@@ -59,11 +64,10 @@ Check your inbox, and a fresh new email should be there, and now you know what's
 ## Roadmap
 
 - [x] Using [Google's OAuth2][2] to authenticate emails (Currently storing account credentials locally)
-- [X] Adding a filter for trends that may occur multiple times in a short time period
+- [x] Adding a filter for trends that may occur multiple times in a short time period
 - [ ] Improving the email layout (HTML/CSS)
 - [ ] Adding a config file for easy configuration (Email frequency, filter time period, recipients list, etc)
 - [x] Launch it in a container or on the cloud to automatically send newsletters (Catch: No free options, can self host)
 
-
-[1]: <https://trends.google.com/trends/trendingsearches/daily?geo=US> "Google Trends Link"
-[2]: <https://blog.macuyiko.com/post/2016/how-to-send-html-mails-with-oauth2-and-gmail-in-python.html> "Google OAuth2 using Python"
+[1]: https://trends.google.com/trends/trendingsearches/daily?geo=US "Google Trends Link"
+[2]: https://blog.macuyiko.com/post/2016/how-to-send-html-mails-with-oauth2-and-gmail-in-python.html "Google OAuth2 using Python"
