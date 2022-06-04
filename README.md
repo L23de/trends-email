@@ -1,5 +1,7 @@
 # trends-email
 
+[![Project Status: Abandoned – Initial development has started, but there has not yet been a stable, usable release; the project has been abandoned and the author(s) do not intend on continuing development.](https://www.repostatus.org/badges/latest/abandoned.svg)](https://www.repostatus.org/#abandoned)
+
 Trends Email is a simple program that can run locally or on the cloud to send daily newsletters about the [latest search trends][1] powered by Google Trends
 
 <p align="center">
